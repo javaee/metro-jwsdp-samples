@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- JNLP File for Amazon Web Services client -->
+<jnlp spec="1.0+"
+  codebase="http://@deploy.host@/demo/jamazon" href="jamazon.jnlp">
+  <information>
+    <title>JAmazon.com</title>
+    <vendor>Sun Microsystems, Inc.</vendor>
+    <homepage href="http://@deploy.host@/demo/jamazon/index.html"/>
+    <description>JAmazon.com</description>
+    <description kind="short">Amazon Web Services Java Client</description>
+    <offline-allowed/>
+  </information>
+  <security>
+    <all-permissions/>
+  </security>
+  <resources>
+    <j2se version="1.4+"/>
+    <jar href="jamazon.jar" main="true"/>
+    <jar href="jaxrpc-api.jar"/>
+    <jar href="jaxrpc-spi.jar"/>
+    <jar href="jaxrpc-impl.jar"/>
+    <jar href="saaj-api.jar"/>
+    <jar href="saaj-impl.jar"/>
+    <jar href="activation.jar"/>
+    <jar href="mail.jar"/>
+    <jar href="jax-qname.jar"/>
+  </resources>
+  <application-desc main-class="com.sun.jamazon.JAmazon">
+  </application-desc>
+</jnlp> 

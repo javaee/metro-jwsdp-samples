@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Amazon Web Services Rich Client" default="run" basedir=".">
+
+  <!-- use "env" as a prefix for enviroment variables -->
+  <property environment="env"/>
+  <property file="build.properties"/>
+
+  <!-- local directories -->
+  <property name="dir-src" value="src"/>
+  <property name="dir-build" value="build/classes"/>
+  <property name="dir-javadoc" value="build/javadoc"/>
+  <property name="dir-lib" value="lib"/>
+  <property name="dir-dist" value="dist"/>
+
+  <!-- library directories -->
+  <property name="dir-jwsdp" location="${jwsdp.home}"/>
+  <property name="dir-jaxp" location="${dir-jwsdp}/jaxp"/>
+  <property name="dir-jaxrpc" location="${dir-jwsdp}/jaxrpc"/>
+  <property name="dir-saaj" location="${dir-jwsdp}/saaj"/>
+  <property name="dir-jwsdp-shared" location="${dir-jwsdp}/jwsdp-shared"/>
+
+  <!-- Release name -->
+  <property name="bundle-name" value="${release.name}-${release.no}-${release.level}"/>
+  <property name="bundle-zip" value="${dir-dist}/${bundle-name}.zip"/>
+  <property name="bundle-tar" value="${dir-dist}/${bundle-name}.tar.gz"/>
+
+  <!-- Setup the classpath - all the files in the Soap lib directory -->
+
+  <path id="classpath.lib">
+    <fileset dir="${dir-jaxrpc}/lib">
+      <include name="**/*.jar"/>
+    </fileset>
+    <fileset dir="${dir-saaj}/lib">
+      <include name="**/*.jar"/>
+    </fileset>
+    <fileset dir="${dir-jwsdp-shared}/lib">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+  <path id="classpath.jaxp">
+    <fileset dir="${dir-jaxp}/lib">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+  <taskdef name="wscompile" classname="com.sun.xml.rpc.tools.ant.Wscompile">
+    <classpath refid="classpath.lib"/>
+  </taskdef>
+
+  <target name="prepare" description="Prepares the build">
+    <mkdir dir="${dir-build}"/>
+    <mkdir dir="${dir-dist}"/>
+    <copy todir="${dir-build}">
+      <fileset dir="${dir-src}" includes="**/resources/**"/>
+    </copy>
+  </target>
+
+  <target name="clean" description="Cleans all the artifacts of the build process">
+    <delete dir="${dir-build}"/>
+    <!-- delete the generated source -->
+    <delete dir="${dir-src}/myamazonclient"/>
+    <delete dir="${dir-dist}"/>
+  </target>
+
+  <!-- Generates the Java stubs using JAX-RPC RI. -->
+  <!-- Note: This target assumes that it will be invoked behind a firewall. -->
+  <!-- the httpproxy attribute may need to be removed or generalized to be optional -->
+  <target name="generate-stubs" depends="prepare" 
+    description="Runs wscompile to generate the client stub classes">
+    <echo message="Running wscompile...."/>
+    <wscompile keep="true" client="true"
+      base="${dir-build}"
+      sourceBase="${dir-src}"
+      httpproxy="${proxy.host}:${proxy.port}"
+      config="compile-config.xml">
+      <classpath>
+	<path refid="classpath.lib"/>
+      </classpath>
+    </wscompile>
+  </target>
+
+  <!-- This target really depends on generate-stubs -->
+  <target name="compile" depends="prepare" 
+    description="Compiles classes. Run generate-stubs first">
+    <javac srcdir="${dir-src}" destdir="${dir-build}" debug="on"
+      classpathref="classpath.lib"/>
+  </target>
+
+  <!-- Creates the development bundle -->
+  <target name="dist" depends="clean">
+    <copy todir="${dir-dist}/${bundle-name}">
+      <fileset dir="." includes="jamazon.jnlp, *.txt, build.*, *.xml"/>
+      <fileset dir="." includes="src/**" excludes="**/myamazonclient/**"/>
+    </copy>
+    
+    <!-- This is the redistributable bundle -->
+    <!-- create the distribution bundles -->
+    <zip destfile="${bundle-zip}" basedir="${dir-dist}" excludes="*.zip, *.tar.gz"/>
+    <tar destfile="${bundle-tar}" basedir="${dir-dist}" excludes="*.zip, *.tar.gz"
+      compression="gzip"/>
+  </target>
+
+  
+  <!-- Creates the deployment bundle by signing jar files and web files. -->
+  <target name="deploy" depends="clean, generate-stubs, compile" 
+    description="creates the deployment bundle">
+    
+    <jar jarfile="${dir-dist}/jamazon.jar"
+      basedir="${dir-build}"
+      excludes="**/demo/**,*Demo.class,**/test/**,test*.class"/>
+
+    <copy todir="${dir-dist}">
+      <fileset dir="${dir-jaxrpc}/lib">
+	<include name="**/*.jar"/>
+      </fileset>
+      <fileset dir="${dir-saaj}/lib">
+	<include name="**/*.jar"/>
+      </fileset>
+      <fileset dir="${dir-jwsdp-shared}/lib"
+	includes="activation.jar, mail.jar, jax-qname.jar"/>
+    </copy>
+	
+    <!-- Java Web Start Deployment -->
+    <copy todir="${dir-dist}" overwrite="true" file="jamazon.jnlp">
+      <filterset>
+	<filter token="deploy.host" value="${deploy.host}"/>
+      </filterset>
+    </copy>
+
+    <!-- XXX - should only generate this once. I'm not sure how to check for existing keys.
+
+    <available property="keystore.present" file="jam_keystore"/>
+    <echo message="keystore.present: ${keystore.present}"/>
+
+    <genkey alias="mark" storepass="amazon" keystore="jam_keystore"
+    dname="CN=Java Client Group, OU=Java Software Division, O=Sun Microsystems Inc, C=US"/>
+    <signjar alias="mark" storepass="amazon" keystore="$jam_keystore">
+      <fileset dir="${dir-dist}" includes="**/*.jar"/>
+    </signjar>
+    -->
+    
+    <zip zipfile="${dir-dist}/jamazon-deploy-bundle.zip" 
+      basedir="${dir-dist}"
+      excludes="*.zip, *.tar.gz"/>
+  </target>
+
+  <target name="javadoc" depends="compile" description="Generate the javadoc for the project">
+    <mkdir dir="${dir-javadoc}"/>
+    <javadoc source="1.4" packagenames="com.sun.jamazon.*"
+      excludepackagenames="myamazonclient.AmazonClientGenClient.*"
+      sourcepath="${dir-src}"
+      destdir="${dir-javadoc}">
+      <classpath>
+	<pathelement location="${dir-build}"/>
+	<path refid="classpath.lib"/>
+      </classpath>
+    </javadoc>
+  </target>
+
+  <target name="test" description="Runs all the JUnit tests...">
+    <echo message="JUnit tests not implemented yet..."/>
+  </target>
+
+  <target name="run" depends="generate-stubs, compile" description="Runs the jamazon client">
+    <java classname="com.sun.jamazon.JAmazon" fork="true">
+      <classpath>
+	<pathelement location="${dir-build}"/>
+	<path refid="classpath.lib"/>
+      </classpath>
+      <!-- should add proxies if needed -->
+      <jvmarg value="-Dhttp.proxyHost=${proxy.host}"/>
+      <jvmarg value="-Dhttp.proxyPort=${proxy.port}"/>
+      <!-- JWSDP uses Xerces -->
+      <jvmarg value="-Djava.endorsed.dirs=${dir-jaxp}/lib/endorsed"/>
+    </java>
+  </target>
+
+</project>
