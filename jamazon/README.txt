@@ -26,6 +26,8 @@ http://java.sun.com/webservices/downloads/webservicespack.html
 Java 2 Platform, Standard Edition SDK 1.4.2
 http://java.sun.com/j2se/1.4.2/download.html
 
+The application may run on other versions but there is no guarantee that it will work.
+
 build.xml and build.properties
 ------------------------------
 An Ant (http://ant.apache.org) build file has been included to run and compile 
@@ -34,8 +36,8 @@ the client.
 The default target is "run" which will compile any out of date classes before 
 executing.
 
-Before the application can be built, the build.properties file should be changed
-to reflect your development environment.
+BEFORE THE APPLICATION CAN BE BUILT, THE build.properties FILE SHOULD BE CHANGED
+TO REFLECT YOUR DEVELOPMENT ENVIRONMENT.
 
 jwsdp.home: Should point to the root of the JWSDP 1.3 directory
 proxy.host: The name of the http proxy server (if behind a firewall)
@@ -99,8 +101,10 @@ jwsdp-shared/lib:
 	jax-qname.jar 
 
 NOTE: There are some deployment issues which make it prohibitive to deploy
-      the application over the internet. The major issue is that JAX-RPC 1.1 
+      the application over the Internet. The major issue is that JAX-RPC 1.1 
       uses the xerces parser in the JWSDP_HOME/jaxp/lib/endorsed directory. 
+
+      This problem will be addressed with the GA of J2SE v 1.5.
 
 Architecture
 ============
@@ -122,8 +126,21 @@ RequestHandler:
 
 The other classes are some utility classes to enable table sorting and 
 threading. 
-     
-Comments
-========
-Send comments to: mark.davidson@sun.com
+
+TODO
+----
+There are 3 algoritms for accessing the web service and placing the results into the 
+table model in RequestHandler. This essentially is the heart of the web service
+to client interaction and should be studied. 
+
+The best algorithm should invoke the web service call on a thread - so that the network
+operations don't block the UI - and the results should be placed in the AWT Event Dispatch
+thread to update the UI. The other requirement is that the results should be returned
+in sequence.
+
+Also, JUnit tests would be helpful.
+
+Comments and Feedback
+---------------------
+Send comments to: users@jwsdp-samples.dev.java.net
 
