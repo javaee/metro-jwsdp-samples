@@ -19,6 +19,9 @@
   <property name="dir-saaj" location="${dir-jwsdp}/saaj"/>
   <property name="dir-jwsdp-shared" location="${dir-jwsdp}/jwsdp-shared"/>
 
+  <!-- File names -->
+  <property name="file-keystore" location="${dir-build}/jam_keystore"/>
+
   <!-- Release name -->
   <property name="bundle-name" value="${release.name}-${release.no}-${release.level}"/>
   <property name="bundle-zip" value="${dir-dist}/${bundle-name}.zip"/>
@@ -49,6 +52,7 @@
   </taskdef>
 
   <target name="prepare" description="Prepares the build">
+    <available property="keystore.present" file="${file-keystore}"/>
     <mkdir dir="${dir-build}"/>
     <mkdir dir="${dir-dist}"/>
     <copy todir="${dir-build}">
@@ -101,15 +105,21 @@
       compression="gzip"/>
   </target>
 
-  
+    
+  <!-- Creates the keystore for jar signing. Should only generate this once. -->
+  <target name="keystore" unless="keystore.present">
+    <genkey alias="jamazon" storepass="jamazon" keystore="${file-keystore}"
+      dname="CN=Anonymous Signature, OU=unknown, O=unknown, C=unknown"/>
+  </target>
+
   <!-- Creates the deployment bundle by signing jar files and web files. -->
-  <target name="deploy" depends="clean, generate-stubs, compile" 
+  <target name="deploy" depends="clean, generate-stubs, compile, keystore" 
     description="creates the deployment bundle">
     
     <jar jarfile="${dir-dist}/jamazon.jar"
       basedir="${dir-build}"
       excludes="**/demo/**,*Demo.class,**/test/**,test*.class"/>
-
+    
     <copy todir="${dir-dist}">
       <fileset dir="${dir-jaxrpc}/lib">
 	<include name="**/*.jar"/>
@@ -128,17 +138,9 @@
       </filterset>
     </copy>
 
-    <!-- XXX - should only generate this once. I'm not sure how to check for existing keys.
-
-    <available property="keystore.present" file="jam_keystore"/>
-    <echo message="keystore.present: ${keystore.present}"/>
-
-    <genkey alias="mark" storepass="amazon" keystore="jam_keystore"
-    dname="CN=Java Client Group, OU=Java Software Division, O=Sun Microsystems Inc, C=US"/>
-    <signjar alias="mark" storepass="amazon" keystore="$jam_keystore">
+    <signjar alias="jamazon" storepass="jamazon" keystore="${file-keystore}">
       <fileset dir="${dir-dist}" includes="**/*.jar"/>
     </signjar>
-    -->
     
     <zip zipfile="${dir-dist}/jamazon-deploy-bundle.zip" 
       basedir="${dir-dist}"
@@ -162,7 +164,7 @@
     <echo message="JUnit tests not implemented yet..."/>
   </target>
 
-  <target name="run" depends="generate-stubs, compile" description="Runs the jamazon client">
+  <target name="run" depends="generate-stubs, compile" description="Runs the Jamazon client">
     <java classname="com.sun.jamazon.JAmazon" fork="true">
       <classpath>
 	<pathelement location="${dir-build}"/>
